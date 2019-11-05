@@ -33,16 +33,18 @@ end
 defmodule FirefighterDinner.Main do
   def sorted_bodegas do
     FirefighterDinner.FireHouse.all
-    |> hd
-    |> sorted_bodegas
+    |> Enum.map(fn fh ->
+      Task.async(fn -> sorted_bodegas(fh) end)
+    end)
+    |> Enum.map(&Task.await(&1))
   end
 
   def sorted_bodegas(firehouse) do
     FirefighterDinner.Bodegas.all
     |> Enum.map(fn bodega ->
-      {FirefighterDinner.DiffCalculator.distance(firehouse, bodega), bodega}
+      {FirefighterDinner.DiffCalculator.distance(firehouse, bodega), firehouse, bodega}
     end)
-    |> Enum.sort(fn {dist1, _}, {dist2, _} -> dist1 < dist2 end)
+    |> Enum.sort(fn {dist1, _, _}, {dist2, _, _} -> dist1 < dist2 end)
   end
 end
 
@@ -52,18 +54,22 @@ defmodule FirefighterDinner.DiffCalculator do
     lon1 = loc1.longitude
     lat2 = loc2.latitude
     lon2 = loc2.longitude
-    earth_radius = 6_371 * 1000
+    earth_radius = 6_371 #km
 
-    lat_diff = lat2 - lat1
-    lon_diff = lon2 - lon1
+    lat_diff = lat2 - lat1 |> degrees_to_radians
+    lon_diff = lon2 - lon1 |> degrees_to_radians
 
     a =
       :math.sin(lat_diff / 2) * :math.sin(lat_diff / 2) +
-        :math.cos(lat1) * :math.cos(lat2) *
+        :math.cos(degrees_to_radians(lat1)) * :math.cos(degrees_to_radians(lat2)) *
           :math.sin(lon_diff / 2) * :math.sin(lon_diff / 2)
 
     c = 2 * :math.atan2(:math.sqrt(a), :math.sqrt(1 - a))
 
     earth_radius * c
+  end
+
+  defp degrees_to_radians(degree) do
+    degree * :math.pi / 180
   end
 end
