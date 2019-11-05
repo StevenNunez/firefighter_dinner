@@ -1,3 +1,5 @@
+# close = results |> Enum.filter(fn r -> Enum.any?(r, fn {dist, _, _} -> dist < 1 end) end)
+
 defmodule FirefighterDinner.FireHouse do
   def all do
     priv_dir = :code.priv_dir(:firefighter_dinner) |> to_string
